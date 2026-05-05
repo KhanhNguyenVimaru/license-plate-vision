@@ -1,0 +1,9 @@
+ultralytics
+paddlepaddle
+paddleocr
+opencv-python
+numpy
+pillow
+matplotlib
+huggingface-hub
+flask

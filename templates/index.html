@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plate Vision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.2s;
+        }
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-lg">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold">Plate Vision</h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="flex border-b border-slate-200">
+                <button onclick="switchTab('upload')" id="tabUpload" class="flex-1 py-3 px-4 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50">
+                    Upload Image
+                </button>
+                <button onclick="switchTab('video')" id="tabVideo" class="flex-1 py-3 px-4 text-sm font-medium text-slate-500 hover:text-slate-700">
+                    Upload Video
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <!-- Image Upload Panel -->
+                <div id="panelUpload">
+                    <div id="dropZoneImg" class="drop-zone rounded-xl p-8 text-center cursor-pointer bg-slate-50">
+                        <svg class="w-12 h-12 mx-auto text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <p class="text-slate-600 font-medium mb-1">Drop image here or click to browse</p>
+                        <p class="text-xs text-slate-400">JPG, PNG, WEBP</p>
+                        <input type="file" id="fileInputImg" class="hidden" accept="image/*">
+                    </div>
+                    <button onclick="uploadImage()" id="btnUploadImg" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50" disabled>
+                        Detect License Plate
+                    </button>
+                </div>
+
+                <!-- Video Upload Panel -->
+                <div id="panelVideo" class="hidden space-y-4">
+                    <div id="dropZoneVid" class="drop-zone rounded-xl p-8 text-center cursor-pointer bg-slate-50">
+                        <svg class="w-12 h-12 mx-auto text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <p class="text-slate-600 font-medium mb-1">Drop video here or click to browse</p>
+                        <p class="text-xs text-slate-400">MP4, AVI, MOV, MKV</p>
+                        <input type="file" id="fileInputVid" class="hidden" accept="video/*">
+                    </div>
+
+                    <!-- Video preview -->
+                    <div id="videoPreviewContainer" class="hidden rounded-xl overflow-hidden bg-black aspect-video">
+                        <video id="videoPreview" controls class="w-full h-full object-contain"></video>
+                    </div>
+
+                    <button onclick="uploadVideo()" id="btnUploadVid" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50" disabled>
+                        Process Video
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results: Image -->
+        <div id="imgResults" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-5 fade-in">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Detection Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-slate-500 mb-2 uppercase font-semibold">Original</p>
+                    <img id="resultOriginal" class="w-full rounded-lg border border-slate-200" alt="Original">
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 mb-2 uppercase font-semibold">Annotated</p>
+                    <img id="resultAnnotated" class="w-full rounded-lg border border-slate-200" alt="Annotated">
+                </div>
+            </div>
+            <div id="platesList" class="mt-4 space-y-2"></div>
+        </div>
+
+        <!-- Results: Video -->
+        <div id="vidResults" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-5 fade-in">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Video Processing Results</h2>
+
+            <div id="vidProcessingInfo" class="mb-4"></div>
+
+            <!-- Download -->
+            <div id="vidDownloadSection" class="hidden mb-5 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </div>
+                        <div>
+                            <p class="font-medium text-slate-800">Annotated video is ready</p>
+                            <p class="text-xs text-slate-500">All frames have been processed</p>
+                        </div>
+                    </div>
+                    <a id="vidDownloadLink" href="#" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                        Download
+                    </a>
+                </div>
+            </div>
+
+            <!-- Unique plates -->
+            <div>
+                <p class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Unique Plates Detected</p>
+                <div id="vidPlatesList" class="space-y-2"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 flex flex-col items-center shadow-2xl max-w-sm mx-4">
+            <div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+            <p id="loadingText" class="text-slate-700 font-medium">Processing...</p>
+            <p id="loadingSub" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentImgFile = null;
+        let currentVidFile = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone('dropZoneImg', 'fileInputImg', 'image');
+            setupDropZone('dropZoneVid', 'fileInputVid', 'video');
+        });
+
+        function switchTab(tab) {
+            const uploadBtn = document.getElementById('tabUpload');
+            const videoBtn = document.getElementById('tabVideo');
+            const uploadPanel = document.getElementById('panelUpload');
+            const videoPanel = document.getElementById('panelVideo');
+
+            if (tab === 'upload') {
+                uploadBtn.className = 'flex-1 py-3 px-4 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50';
+                videoBtn.className = 'flex-1 py-3 px-4 text-sm font-medium text-slate-500 hover:text-slate-700';
+                uploadPanel.classList.remove('hidden');
+                videoPanel.classList.add('hidden');
+            } else {
+                videoBtn.className = 'flex-1 py-3 px-4 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50';
+                uploadBtn.className = 'flex-1 py-3 px-4 text-sm font-medium text-slate-500 hover:text-slate-700';
+                videoPanel.classList.remove('hidden');
+                uploadPanel.classList.add('hidden');
+            }
+        }
+
+        function setupDropZone(zoneId, inputId, type) {
+            const dropZone = document.getElementById(zoneId);
+            const fileInput = document.getElementById(inputId);
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0], type);
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) handleFile(e.target.files[0], type);
+            });
+        }
+
+        function handleFile(file, type) {
+            const dropZone = type === 'image' ? document.getElementById('dropZoneImg') : document.getElementById('dropZoneVid');
+            dropZone.innerHTML = `
+                <svg class="w-10 h-10 mx-auto text-emerald-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <p class="text-slate-700 font-medium">${file.name}</p>
+                <p class="text-xs text-slate-400 mt-1">Click to change file</p>
+            `;
+
+            if (type === 'image') {
+                currentImgFile = file;
+                document.getElementById('btnUploadImg').disabled = false;
+            } else {
+                currentVidFile = file;
+                document.getElementById('btnUploadVid').disabled = false;
+                // Show video preview
+                const container = document.getElementById('videoPreviewContainer');
+                const video = document.getElementById('videoPreview');
+                video.src = URL.createObjectURL(file);
+                container.classList.remove('hidden');
+            }
+        }
+
+        // --- Image ---
+        async function uploadImage() {
+            if (!currentImgFile) return;
+            showLoading(true, 'Processing image...');
+            const formData = new FormData();
+            formData.append('image', currentImgFile);
+            try {
+                const res = await fetch('/api/detect', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showImageResults(currentImgFile, data);
+                } else {
+                    alert(data.error || 'Detection failed');
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showImageResults(originalFile, data) {
+            document.getElementById('vidResults').classList.add('hidden');
+            const section = document.getElementById('imgResults');
+            section.classList.remove('hidden');
+            document.getElementById('resultOriginal').src = URL.createObjectURL(originalFile);
+            document.getElementById('resultAnnotated').src = 'data:image/jpeg;base64,' + data.annotated_image;
+
+            const list = document.getElementById('platesList');
+            if (data.plates.length === 0) {
+                list.innerHTML = '<div class="p-3 bg-amber-50 text-amber-700 rounded-lg text-sm">No plates detected.</div>';
+            } else {
+                list.innerHTML = data.plates.map((p, i) => `
+                    <div class="flex items-center justify-between p-3 rounded-lg border ${p.valid ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full ${p.valid ? 'bg-emerald-500' : 'bg-red-500'} text-white text-xs flex items-center justify-center font-bold">${i + 1}</span>
+                            <div>
+                                <p class="font-bold text-lg tracking-wider font-mono text-slate-800">${p.text || '---'}</p>
+                                <p class="text-xs text-slate-500">Confidence: ${(p.score * 100).toFixed(0)}%</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${p.valid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${p.valid ? 'VALID' : 'INVALID'}
+                        </span>
+                    </div>
+                `).join('');
+            }
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // --- Video ---
+        async function uploadVideo() {
+            if (!currentVidFile) return;
+            showLoading(true, 'Processing video...', 'This may take a while depending on video length');
+            const formData = new FormData();
+            formData.append('video', currentVidFile);
+            try {
+                const res = await fetch('/api/detect_video', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showVideoResults(data);
+                } else {
+                    alert(data.error || 'Video processing failed');
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showVideoResults(data) {
+            document.getElementById('imgResults').classList.add('hidden');
+            const section = document.getElementById('vidResults');
+            section.classList.remove('hidden');
+
+            document.getElementById('vidProcessingInfo').innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-slate-500 uppercase">Total Frames</p>
+                        <p class="text-xl font-bold text-slate-800">${data.total_frames}</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-slate-500 uppercase">Plates Found</p>
+                        <p class="text-xl font-bold text-blue-600">${data.plates_detected}</p>
+                    </div>
+                </div>
+            `;
+
+            // Download section
+            const dlSection = document.getElementById('vidDownloadSection');
+            dlSection.classList.remove('hidden');
+            document.getElementById('vidDownloadLink').href = data.download_url;
+
+            // Plates list
+            const list = document.getElementById('vidPlatesList');
+            if (data.unique_plates.length === 0) {
+                list.innerHTML = '<div class="p-3 bg-amber-50 text-amber-700 rounded-lg text-sm">No plates detected in this video.</div>';
+            } else {
+                list.innerHTML = data.unique_plates.map((p, i) => `
+                    <div class="flex items-center justify-between p-3 rounded-lg border ${p.valid ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full ${p.valid ? 'bg-emerald-500' : 'bg-red-500'} text-white text-xs flex items-center justify-center font-bold">${i + 1}</span>
+                            <div>
+                                <p class="font-bold text-lg tracking-wider font-mono text-slate-800">${p.text || '---'}</p>
+                                <p class="text-xs text-slate-500">First seen at frame ${p.frame} | Confidence: ${(p.score * 100).toFixed(0)}%</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${p.valid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                            ${p.valid ? 'VALID' : 'INVALID'}
+                        </span>
+                    </div>
+                `).join('');
+            }
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function showLoading(show, text = 'Processing...', sub = '') {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingSub').textContent = sub;
+        }
+    </script>
+</body>
+</html>
