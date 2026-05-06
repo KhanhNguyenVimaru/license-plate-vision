@@ -204,6 +204,42 @@ Common OCR misreads are automatically corrected (`O` → `0`, `I` → `1`, `S` �
 
 ---
 
+## Evaluation
+
+The detection and OCR pipeline was evaluated on the [Kaggle License Plates dataset](https://www.kaggle.com/datasets/duydieunguyen/licenseplates) (YOLO polygon segmentation format) containing **1,145 validation images** with **1,294 ground-truth plates**.
+
+### Detection Metrics (IoU ≥ 0.5, Confidence ≥ 0.5)
+
+| Metric | Value |
+|--------|-------|
+| Ground-truth plates | 1,294 |
+| Detections | 1,105 |
+| True Positives | 1,042 |
+| False Positives | 63 |
+| False Negatives | 252 |
+| **Precision** | **94.30%** |
+| **Recall** | **80.53%** |
+| **F1-Score** | **0.8687** |
+
+### OCR Metrics (on matched plates)
+
+| Metric | Value |
+|--------|-------|
+| Plates read | 1,042 |
+| Avg OCR confidence | **95.31%** |
+
+> **Note:** OCR accuracy cannot be measured directly because the dataset does not contain ground-truth text labels. The reported confidence reflects the PaddleOCR internal confidence.
+
+### Speed
+
+| Metric | Value |
+|--------|-------|
+| Images evaluated | 1,145 |
+| Time elapsed | 5,325.7 s |
+| Average speed | ~4.65 s / image |
+
+---
+
 ## Configuration
 
 Edit `config.py` to tune the pipeline:

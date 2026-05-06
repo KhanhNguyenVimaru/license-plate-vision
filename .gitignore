@@ -53,13 +53,21 @@ cert.key
 models/*.pt
 models/*.onnx
 models/*.engine
+models/.cache/
 
-# Output directory (generated results)
+# Output directory (generated results, charts, reports)
 output/
 
-# Test data (optional - uncomment if you don't want to commit test media)
-# data/images/*
-# data/videos/*
+# Test media & datasets (large binary files – do not commit)
+data/archive/
+data/images/*.jpg
+data/images/*.jpeg
+data/images/*.png
+data/images/*.webp
+data/videos/*.mp4
+data/videos/*.avi
+data/videos/*.mov
+data/videos/*.mkv
 
 # Logs
 *.log
@@ -67,10 +75,19 @@ output/
 # Jupyter
 .ipynb_checkpoints/
 
-# PaddleOCR cache (if downloaded into project)
+# PaddleOCR cache
 .paddlex/
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Flask
+instance/
+*.sqlite3
