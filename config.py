@@ -20,7 +20,7 @@ OCR_LANG = "en"
 
 # Video / webcam settings
 DEFAULT_SOURCE = "0"
-FRAME_SKIP = 1
+TARGET_PROCESS_FPS = 5.0   # process N frames per second of video (not every frame)
 WAIT_KEY_MS = 1
 
 # Output settings

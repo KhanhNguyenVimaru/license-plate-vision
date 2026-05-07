@@ -92,6 +92,11 @@ def process_video(source_path, detector, preprocessor, ocr, save: bool = False):
         writer = cv2.VideoWriter(out_path, fourcc, fps, (w, h))
         logger.info(f"Saving output video to {out_path}")
 
+    # Calculate skip step to achieve ~TARGET_PROCESS_FPS
+    video_fps = cap.get(cv2.CAP_PROP_FPS) or config.OUTPUT_VIDEO_FPS
+    frame_skip = max(1, int(round(video_fps / config.TARGET_PROCESS_FPS)))
+    logger.info(f"Video FPS={video_fps:.1f}, processing every {frame_skip} frame(s) (~{config.TARGET_PROCESS_FPS} FPS)")
+
     frame_count = 0
     while True:
         ret, frame = cap.read()
@@ -99,7 +104,7 @@ def process_video(source_path, detector, preprocessor, ocr, save: bool = False):
             break
 
         frame_count += 1
-        if frame_count % config.FRAME_SKIP != 0:
+        if frame_count % frame_skip != 0:
             continue
 
         annotated, _ = process_frame(frame, detector, preprocessor, ocr)
